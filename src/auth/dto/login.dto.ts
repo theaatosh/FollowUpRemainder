@@ -1,15 +1,12 @@
-/* eslint-disable prettier/prettier */
+import { IsEmail, IsNotEmpty, IsString, MinLength } from 'class-validator';
 
-import { IsEmail, IsNotEmpty } from "class-validator";
+export class LoginDto {
+    @IsNotEmpty({ message: 'Email is required' })
+    @IsEmail({}, { message: 'Please provide a valid email' })
+    email: string;
 
-
-
-export class LoginUserDto{
-    @IsNotEmpty()
-    @IsEmail()
-    email:string;
-
-    @IsNotEmpty()
-    password:string;
-
+    @IsNotEmpty({ message: 'Password is required' })
+    @IsString()
+    @MinLength(6, { message: 'Password must be at least 6 characters' })
+    password: string;
 }

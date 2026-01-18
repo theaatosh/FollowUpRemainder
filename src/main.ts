@@ -12,12 +12,12 @@ async function bootstrap() {
   app.setGlobalPrefix("api/v1");
 
 
-//executes for every request for validating data
+  //executes for every request for validating data
   app.useGlobalPipes(new ValidationPipe({
-    transform:true,
-    whitelist:true,
-    forbidNonWhitelisted:true,
-    
+    transform: true,
+    whitelist: true,
+    forbidNonWhitelisted: true,
+
   }))
 
   //for cors
@@ -27,9 +27,9 @@ async function bootstrap() {
     credentials: true, // if you need cookies/auth headers
   });
 
-  const configService=app.get(ConfigService)
-  const PORT=configService.get<number>("PORT")
-  await app.listen(PORT|| 3000);
+  const configService = app.get(ConfigService)
+  const PORT = configService.get<number>("PORT")
+  await app.listen(PORT || 3000);
   console.log(`Application is running on port ${PORT}`);
 }
 bootstrap();
