@@ -4,6 +4,7 @@ import { ConfigService } from "@nestjs/config";
 import { PassportStrategy } from "@nestjs/passport";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { TokenPayload } from "../types";
+import { Request } from "express";
 
 
 
@@ -12,7 +13,15 @@ import { TokenPayload } from "../types";
 export class JwtAccessStrategy extends PassportStrategy(Strategy,"jwt"){
     constructor(private config:ConfigService){
         super({
-            jwtFromRequest:ExtractJwt.fromAuthHeaderAsBearerToken(),
+            jwtFromRequest:ExtractJwt.fromExtractors([
+                (request:Request)=>{
+                const authHeader=request.headers.authorization;
+                const token=authHeader?.split(" ")[1]??null;
+                return token;
+
+
+                }
+            ]),
             secretOrKey:config.get<string>("ACCESS_TOKEN_SECRET")!,
             ignoreExpiration:false,
         })
@@ -21,6 +30,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy,"jwt"){
     }
  
      validate(payload:TokenPayload){
+        console.log('🔐 JWT Token payload received:', payload);
         return {userId:payload.sub,role:payload.role};
     }
 

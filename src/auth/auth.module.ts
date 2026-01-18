@@ -8,6 +8,7 @@ import { EmailModule } from 'src/notifications/email.module';
 import { MongooseModule } from '@nestjs/mongoose';
 import { EmailToken, EmailTokenSchema } from 'src/notifications/email-token.schema';
 import { RefreshToken, RefreshTokenSchema } from './schema/refreshToken.schema';
+import { JwtAccessStrategy } from './strategies/jwt-strategy';
 
 @Module({
   imports: [
@@ -19,9 +20,9 @@ import { RefreshToken, RefreshTokenSchema } from './schema/refreshToken.schema';
       imports: [ConfigModule],
       inject: [ConfigService],
       useFactory: (configService: ConfigService) => {
-        const expiresIn = configService.get<string>('JWT_EXPIRES_IN') || '7d';
+        const expiresIn = configService.get<string>('ACCESS_TOKEN_EXPIRES_IN') || '7d';
         return {
-          secret: configService.get<string>('JWT_SECRET') || 'fallback-secret',
+          secret: configService.get<string>('ACCESS_TOKEN_SECRET') || 'fallback-secret',
           signOptions: {
             expiresIn: expiresIn as any, // JWT library accepts string like '7d'
           },
@@ -30,7 +31,7 @@ import { RefreshToken, RefreshTokenSchema } from './schema/refreshToken.schema';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService],
+  providers: [AuthService,JwtAccessStrategy],
   exports: [AuthService],
 })
 export class AuthModule { }

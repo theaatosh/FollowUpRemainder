@@ -26,6 +26,7 @@ export class AuthController {
     async login(@Body() loginDto: LoginDto,@Res({passthrough:true}) res:Response): Promise<AuthLoginResponse> {
        const {user,tokens}=await  this.authService.login(loginDto);
         const refreshTokenExpiry=this.configService.get<string>("REFRESH_TOKEN_EXPIRES_IN");
+        console.log("hello")
         res.cookie("refreshToken",JSON.stringify(tokens.refreshToken),{
             httpOnly:true,
             secure:this.configService.get<string>("NODE_ENV")==="production",

@@ -159,6 +159,7 @@ export class AuthService {
 
     //to issue refresh and access token
         private async  issueToken({userId,role}:{userId:string,role:string}){
+            const EXPIRES_IN = 30 * 24 * 60 * 60 * 1000;//30 days
         //generate access token
         const accessToken=await this.generateAccessToken({userId:userId,role:role});
         //generate refresh token
@@ -172,7 +173,7 @@ export class AuthService {
             userId,
             jti:jti,
             refreshTokenHash:hashedRefreshToken,
-            expiresAt:new Date(Date.now()+300000)
+            expiresAt:new Date(Date.now()+EXPIRES_IN)
         })
 
         return {

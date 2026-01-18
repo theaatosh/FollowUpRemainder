@@ -31,3 +31,7 @@ export interface LoginResponse {
     refreshToken: string;
   }}
 }
+
+export interface RequestWithUser extends Request{
+    user:TokenPayload
+}
