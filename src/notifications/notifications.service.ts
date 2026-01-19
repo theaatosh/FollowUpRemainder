@@ -1,5 +1,6 @@
 import { InjectQueue } from "@nestjs/bullmq";
 import { Injectable } from "@nestjs/common";
+import { Queue } from "bullmq";
 import { SettingsService } from "src/settings/settings.service";
 
 // notifications.service.ts

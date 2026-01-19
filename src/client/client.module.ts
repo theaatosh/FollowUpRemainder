@@ -7,11 +7,12 @@ import { NotesModule } from 'src/notes/notes.module';
 import { FollowUpModule } from 'src/follow-up/follow-up.module';
 
 @Module({
-  imports:[
-    NotesModule,FollowUpModule,
-MongooseModule.forFeature([{name:Client.name,schema:ClientSchema}])
+  imports: [
+    NotesModule, FollowUpModule,
+    MongooseModule.forFeature([{ name: Client.name, schema: ClientSchema }])
   ],
   controllers: [ClientController],
-  providers: [ClientService]
+  providers: [ClientService],
+  exports: [ClientService, MongooseModule]  // ← Export MongooseModule
 })
-export class ClientModule {}
+export class ClientModule { }

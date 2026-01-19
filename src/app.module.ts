@@ -11,7 +11,6 @@ import { SettingsModule } from './settings/settings.module';
 import { FollowUpModule } from './follow-up/follow-up.module';
 import { NotesModule } from './notes/notes.module';
 import { NotificationsModule } from './notifications/notifications.module';
-import { NotificationService } from './notification/notification.service';
 import { QueuesModule } from './queues/queues.module';
 @Module({
   imports: [ConfigModule.forRoot({
@@ -27,6 +26,6 @@ import { QueuesModule } from './queues/queues.module';
    NotificationsModule,
    QueuesModule],
   controllers: [AppController],
-  providers: [AppService, NotificationService],
+  providers: [AppService],
 })
 export class AppModule {}

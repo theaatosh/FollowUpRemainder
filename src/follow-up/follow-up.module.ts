@@ -3,13 +3,17 @@ import { FollowUpService } from './follow-up.service';
 import { FollowUpController } from './follow-up.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { FollowUp, FollowUpSchema } from './schema/followUp.schema';
+import { QueuesModule } from 'src/queues/queues.module';
+import { SettingsModule } from 'src/settings/settings.module';
 
 @Module({
-  imports:[
-MongooseModule.forFeature([{name:FollowUp.name,schema:FollowUpSchema}])
+  imports: [
+    QueuesModule,
+    SettingsModule,
+    MongooseModule.forFeature([{ name: FollowUp.name, schema: FollowUpSchema }])
   ],
   providers: [FollowUpService],
   controllers: [FollowUpController],
-  exports:[FollowUpService]
+  exports: [FollowUpService, MongooseModule]  // ← Added MongooseModule
 })
-export class FollowUpModule {}
+export class FollowUpModule { }

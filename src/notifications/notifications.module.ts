@@ -1,9 +1,17 @@
 import { Module } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
-import { NotificationsController } from './notifications.controller';
+import { NotificationProcessor } from './processors/notification.processor';
+import { NotificationsGateway } from './notifications.gateway';
+import { QueuesModule } from 'src/queues/queues.module';
+import { SettingsModule } from 'src/settings/settings.module';
+import { ClientModule } from 'src/client/client.module';
+import { FollowUpModule } from 'src/follow-up/follow-up.module';
 
 @Module({
-  providers: [NotificationsService],
-  controllers: [NotificationsController]
+  imports:[
+    QueuesModule,SettingsModule,ClientModule,FollowUpModule
+  ],
+  providers: [NotificationsService,NotificationProcessor,NotificationsGateway],
+  exports:[NotificationsService,NotificationsGateway]
 })
 export class NotificationsModule {}

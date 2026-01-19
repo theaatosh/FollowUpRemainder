@@ -5,12 +5,14 @@ import { InjectModel } from '@nestjs/mongoose';
 import { FollowUpDocument } from './schema/followUp.schema';
 import { CreateFollowUpDto } from './dto/createFollowUp.dto';
 import { SettingsService } from 'src/settings/settings.service';
+import { Queue } from 'bullmq';
+import { InjectQueue } from '@nestjs/bullmq';
 
 @Injectable()
 export class FollowUpService {
 
     constructor(@InjectModel(FollowUp.name) private readonly followUpModel: Model<FollowUpDocument>,
-private readonly notificationQueue:Queue,
+@InjectQueue('notifications') private readonly notificationQueue:Queue,
 private readonly settingsService:SettingsService) { }
 
 
@@ -22,14 +24,15 @@ async createFollowUp(userId, clientId, dto) {
     client: clientId,
     scheduledAt: dto.scheduledAt,  // ISO string stored as Date
     goal: dto.goal,
-    status: 'PENDING'
   });
+  console.log("followup",followUp)
   // 2. Get user settings for reminder offset
   const settings = await this.settingsService.getSettings(userId);
-  
+  console.log("settings",settings)
   // 3. Calculate notification time (scheduledAt - reminderOffset)
   const notifyAt = new Date(dto.scheduledAt);
   notifyAt.setMinutes(notifyAt.getMinutes() - settings.reminderOffset);
+  console.log("notifyAt",notifyAt)
   // 4. Schedule BullMQ job
   await this.notificationQueue.add(
     'followup-reminder',
@@ -71,3 +74,6 @@ async createFollowUp(userId, clientId, dto) {
     }
 
 }
+
+
+// mero xai followup 6 baje ko rakhda tei belama job active bho time anusar chaleko xaina ekchoti ramro sanga time check garnu parxa followup ko 
