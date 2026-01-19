@@ -186,7 +186,7 @@ export class AuthService {
     }
 
  private async generateAccessToken({userId,role}:{userId:string,role:string}){
-    return this.jwtService.signAsync({userId:userId,role:role})
+    return this.jwtService.signAsync({sub:userId,role:role})
 
     }
 

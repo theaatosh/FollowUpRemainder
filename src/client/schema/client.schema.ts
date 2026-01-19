@@ -10,7 +10,7 @@ export enum Status{
    CLOSED="closed"
 }
 
-@Schema()
+@Schema({timestamps:true})
 export class Client{
     @Prop({type:Types.ObjectId,ref:User.name})
     user:Types.ObjectId

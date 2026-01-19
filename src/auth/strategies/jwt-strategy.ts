@@ -17,6 +17,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy,"jwt"){
                 (request:Request)=>{
                 const authHeader=request.headers.authorization;
                 const token=authHeader?.split(" ")[1]??null;
+                // console.log(token);
                 return token;
 
 
@@ -31,7 +32,7 @@ export class JwtAccessStrategy extends PassportStrategy(Strategy,"jwt"){
  
      validate(payload:TokenPayload){
         console.log('🔐 JWT Token payload received:', payload);
-        return {userId:payload.sub,role:payload.role};
+        return {sub:payload.sub,role:payload.role};
     }
 
 }

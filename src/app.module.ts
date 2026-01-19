@@ -7,6 +7,9 @@ import { MongooseModule } from '@nestjs/mongoose';
 import { DatabaseModule } from './database/database.module';
 import { UserModule } from './user/user.module';
 import { ClientModule } from './client/client.module';
+import { SettingsModule } from './settings/settings.module';
+import { FollowUpModule } from './follow-up/follow-up.module';
+import { NotesModule } from './notes/notes.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal:true
@@ -14,7 +17,10 @@ import { ClientModule } from './client/client.module';
  DatabaseModule,
    AuthModule,
    UserModule,
-   ClientModule],
+   ClientModule,
+   SettingsModule,
+   FollowUpModule,
+   NotesModule],
   controllers: [AppController],
   providers: [AppService],
 })
