@@ -11,11 +11,11 @@ import * as bcrypt from 'bcrypt';
 import { UserService } from '../user/user.service';
 import { RegisterDto } from './dto/register.dto';
 import { LoginDto } from './dto/login.dto';
-import { AuthLoginResponse, AuthRegisterResponse, LoginResponse,  TokenPayload } from './types';
-import { EmailService } from 'src/notifications/email.service';
+import { AuthLoginResponse, AuthRegisterResponse, LoginResponse, TokenPayload } from './types';
+import { EmailService } from 'src/Email/email.service';
 import { hashPassword } from 'src/common/utils/hashString';
 import { InjectModel } from '@nestjs/mongoose';
-import { EmailToken, EmailTokenDocument } from 'src/notifications/email-token.schema';
+import { EmailToken, EmailTokenDocument } from 'src/Email/email-token.schema';
 import { Model } from 'mongoose';
 import { generateRandomToken } from 'src/common/utils/generateUUID';
 import { RefreshToken, RefreshTokenDocument } from './schema/refreshToken.schema';
@@ -109,84 +109,84 @@ export class AuthService {
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid email or password');
         }
- //generate access and refresh token
-   const tokens=await this.issueToken({userId:user._id.toString(),role:user.role});
-    return {
-        user:{
-            id:user._id.toString(),
-            email:user.email,
-            role:user.role
-        },
-        tokens
-    }
+        //generate access and refresh token
+        const tokens = await this.issueToken({ userId: user._id.toString(), role: user.role });
+        return {
+            user: {
+                id: user._id.toString(),
+                email: user.email,
+                role: user.role
+            },
+            tokens
+        }
 
 
     }
 
 
-    async verifyEmail(token:string){
-           //validate token
-        if(!token){
+    async verifyEmail(token: string) {
+        //validate token
+        if (!token) {
             throw new BadRequestException("Verification token is required");
         }
-        try{
+        try {
 
             //check token validity
-            const tokenDoc=await this.emailTokenModel.findOneAndDelete({token});
-            if(!tokenDoc||tokenDoc.expiresAt<new Date()){
+            const tokenDoc = await this.emailTokenModel.findOneAndDelete({ token });
+            if (!tokenDoc || tokenDoc.expiresAt < new Date()) {
                 throw new BadRequestException("Invalid or expired verification token");
             }
-         
+
             //update user's isEmailVerified to true 
-            await this.userService.updateUser(tokenDoc.userId.toString(),{isVerified:true});
+            await this.userService.updateUser(tokenDoc.userId.toString(), { isVerified: true });
 
             return true;
-        }catch(err){
-            if(err instanceof Error){
-            throw new InternalServerErrorException("Failed to verify email",err.message);
+        } catch (err) {
+            if (err instanceof Error) {
+                throw new InternalServerErrorException("Failed to verify email", err.message);
+            }
+
+
         }
 
-
-    }
-        
     }
 
 
-    async logout(){
+    async logout() {
 
     }
 
 
     //to issue refresh and access token
-        private async  issueToken({userId,role}:{userId:string,role:string}){
-            const EXPIRES_IN = 30 * 24 * 60 * 60 * 1000;//30 days
+    private async issueToken({ userId, role }: { userId: string, role: string }) {
+        const EXPIRES_IN = 30 * 24 * 60 * 60 * 1000;//30 days
         //generate access token
-        const accessToken=await this.generateAccessToken({userId:userId,role:role});
+        const accessToken = await this.generateAccessToken({ userId: userId, role: role });
         //generate refresh token
-        const refreshToken=crypto.randomUUID();
-        const jti=crypto.randomUUID();
+        const refreshToken = crypto.randomUUID();
+        const jti = crypto.randomUUID();
 
         //hash refreshtoken
-        const hashedRefreshToken=await hashPassword(refreshToken);
+        const hashedRefreshToken = await hashPassword(refreshToken);
 
         await this.refreshTokenModel.create({
             userId,
-            jti:jti,
-            refreshTokenHash:hashedRefreshToken,
-            expiresAt:new Date(Date.now()+EXPIRES_IN)
+            jti: jti,
+            refreshTokenHash: hashedRefreshToken,
+            expiresAt: new Date(Date.now() + EXPIRES_IN)
         })
 
         return {
             accessToken,
-            refreshToken:{
+            refreshToken: {
                 jti,
                 refreshToken
             }
         }
     }
 
- private async generateAccessToken({userId,role}:{userId:string,role:string}){
-    return this.jwtService.signAsync({sub:userId,role:role})
+    private async generateAccessToken({ userId, role }: { userId: string, role: string }) {
+        return this.jwtService.signAsync({ sub: userId, role: role })
 
     }
 

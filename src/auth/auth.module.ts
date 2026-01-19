@@ -4,9 +4,9 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { UserModule } from '../user/user.module';
-import { EmailModule } from 'src/notifications/email.module';
+import { EmailModule } from 'src/Email/email.module';
 import { MongooseModule } from '@nestjs/mongoose';
-import { EmailToken, EmailTokenSchema } from 'src/notifications/email-token.schema';
+import { EmailToken, EmailTokenSchema } from 'src/Email/email-token.schema';
 import { RefreshToken, RefreshTokenSchema } from './schema/refreshToken.schema';
 import { JwtAccessStrategy } from './strategies/jwt-strategy';
 
@@ -31,7 +31,7 @@ import { JwtAccessStrategy } from './strategies/jwt-strategy';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService,JwtAccessStrategy],
+  providers: [AuthService, JwtAccessStrategy],
   exports: [AuthService],
 })
 export class AuthModule { }

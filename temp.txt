@@ -1,0 +1,370 @@
+Follow-Up Reminder System Implementation Plan
+Overview
+Build a production-grade notification system using BullMQ to remind users of scheduled follow-ups, respecting their timezone and quiet hours settings.
+
+Architecture Overview
+Notification
+BullMQ
+Backend
+Frontend
+Not Quiet
+Quiet Hours
+User Creates Follow-Up
+Select Date/Time
+Convert to ISO String
+POST /follow-ups
+FollowUp Service
+Save to MongoDB
+Schedule Job in BullMQ
+Redis Queue
+Job Processor
+Check Quiet Hours
+Send Notification
+Reschedule for Later
+Socket.io / Push / Email
+Technology Stack
+Component	Technology	Why
+Job Queue	BullMQ	Production-grade, Redis-based, supports delayed jobs & cron
+Cache/Queue Storage	Redis	Required by BullMQ, fast, persistent
+Real-time Notifications	Socket.io	Instant push to frontend
+Timezone Handling	date-fns-tz	Reliable timezone conversions
+Data Flow
+1. Frontend → Backend (Creating Follow-Up)
+Frontend sends:
+
+POST /api/v1/follow-ups/client/:clientId
+{
+  "scheduledAt": "2026-01-20T04:30:00.000Z",  // ISO String (UTC)
+  "goal": "Discuss proposal",
+  "note": "Remember to bring pricing sheet"
+}
+Key Points:
+
+Frontend combines date + time picker
+Converts to ISO string using .toISOString()
+Sends UTC time (timezone-agnostic storage)
+2. Backend Processing
+// FollowUp Service
+async createFollowUp(userId, clientId, dto) {
+  // 1. Save to database
+  const followUp = await this.followUpModel.create({
+    user: userId,
+    client: clientId,
+    scheduledAt: dto.scheduledAt,  // ISO string stored as Date
+    goal: dto.goal,
+    status: 'PENDING'
+  });
+  // 2. Get user settings for reminder offset
+  const settings = await this.settingsService.getSettings(userId);
+  
+  // 3. Calculate notification time (scheduledAt - reminderOffset)
+  const notifyAt = new Date(dto.scheduledAt);
+  notifyAt.setMinutes(notifyAt.getMinutes() - settings.reminderOffset);
+  // 4. Schedule BullMQ job
+  await this.notificationQueue.add(
+    'followup-reminder',
+    { 
+      followUpId: followUp._id,
+      userId,
+      clientId 
+    },
+    { 
+      delay: notifyAt.getTime() - Date.now()  // Milliseconds until notification
+    }
+  );
+  return followUp;
+}
+3. BullMQ Job Processing
+// notification.processor.ts
+@Processor('notifications')
+export class NotificationProcessor {
+  
+  @Process('followup-reminder')
+  async handleFollowUpReminder(job: Job) {
+    const { followUpId, userId, clientId } = job.data;
+    
+    // 1. Get follow-up details
+    const followUp = await this.followUpModel.findById(followUpId);
+    if (!followUp || followUp.status !== 'PENDING') return;
+    
+    // 2. Get user settings
+    const settings = await this.settingsService.getSettings(userId);
+    
+    // 3. Check if notifications enabled
+    if (!settings.notificationsEnabled) return;
+    
+    // 4. Check quiet hours
+    if (this.isQuietHours(settings)) {
+      // Reschedule for after quiet hours
+      await this.rescheduleAfterQuietHours(job, settings);
+      return;
+    }
+    
+    // 5. Get client details
+    const client = await this.clientModel.findById(clientId);
+    
+    // 6. Send notification
+    await this.sendNotification({
+      userId,
+      title: `Follow-up Reminder: ${client.name}`,
+      message: followUp.goal,
+      data: { followUpId, clientId }
+    });
+  }
+  
+  private isQuietHours(settings): boolean {
+    if (!settings.quietHoursEnabled) return false;
+    
+    // Get current time in user's timezone
+    const userLocalTime = new Date().toLocaleString('en-US', {
+      timeZone: settings.timeZone,
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false
+    });
+    
+    const [hour, minute] = userLocalTime.split(':').map(Number);
+    const currentMinutes = hour * 60 + minute;
+    
+    const [startHour, startMin] = settings.quietHoursStart.split(':').map(Number);
+    const [endHour, endMin] = settings.quietHoursEnd.split(':').map(Number);
+    
+    const startMinutes = startHour * 60 + startMin;
+    const endMinutes = endHour * 60 + endMin;
+    
+    // Handle overnight quiet hours (e.g., 22:00 - 07:00)
+    if (startMinutes > endMinutes) {
+      return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+    }
+    
+    return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+  }
+  
+  private async rescheduleAfterQuietHours(job, settings) {
+    // Calculate delay until quiet hours end
+    const now = new Date();
+    const [endHour, endMin] = settings.quietHoursEnd.split(':').map(Number);
+    
+    // Create date for quiet hours end in user's timezone
+    // ... timezone calculation logic
+    
+    // Re-add job with new delay
+    await this.notificationQueue.add(
+      'followup-reminder',
+      job.data,
+      { delay: delayUntilQuietHoursEnd }
+    );
+  }
+}
+File Structure
+src/
+├── notifications/
+│   ├── notifications.module.ts
+│   ├── notifications.service.ts
+│   ├── notifications.gateway.ts      # Socket.io
+│   ├── processors/
+│   │   └── notification.processor.ts # BullMQ worker
+│   └── dto/
+│       └── notification.dto.ts
+├── queues/
+│   ├── queues.module.ts              # BullMQ setup
+│   └── queue.constants.ts
+└── follow-up/
+    ├── follow-up.service.ts          # Updated for scheduling
+    └── ...
+Implementation Steps
+Phase 1: Setup Infrastructure
+Install Dependencies
+npm install @nestjs/bullmq bullmq ioredis
+npm install @nestjs/websockets @nestjs/platform-socket.io socket.io
+npm install date-fns date-fns-tz
+Setup Redis (Docker recommended)
+# docker-compose.yml
+services:
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+Configure BullMQ Module
+// queues.module.ts
+@Module({
+  imports: [
+    BullModule.forRoot({
+      connection: {
+        host: 'localhost',
+        port: 6379,
+      },
+    }),
+    BullModule.registerQueue({
+      name: 'notifications',
+    }),
+  ],
+  exports: [BullModule],
+})
+export class QueuesModule {}
+Phase 2: Update Follow-Up Schema
+// followUp.schema.ts
+@Schema({ timestamps: true })
+export class FollowUp {
+  @Prop({ type: Types.ObjectId, ref: 'User', required: true })
+  user: Types.ObjectId;
+  @Prop({ type: Types.ObjectId, ref: 'Client', required: true })
+  client: Types.ObjectId;
+  @Prop({ required: true })
+  scheduledAt: Date;  // Stored as UTC
+  @Prop({ required: true })
+  goal: string;
+  @Prop()
+  note?: string;  // Optional note
+  @Prop({ enum: ['PENDING', 'COMPLETED', 'CANCELLED'], default: 'PENDING' })
+  status: string;
+  @Prop()
+  notificationSentAt?: Date;  // Track when reminder was sent
+  @Prop()
+  completedAt?: Date;
+}
+Phase 3: Create Notification Service
+// notifications.service.ts
+@Injectable()
+export class NotificationsService {
+  constructor(
+    @InjectQueue('notifications') private notificationQueue: Queue,
+    private settingsService: SettingsService,
+  ) {}
+  async scheduleFollowUpReminder(followUp, userId: string) {
+    const settings = await this.settingsService.getSettings(userId);
+    
+    // Calculate when to send notification
+    const scheduledTime = new Date(followUp.scheduledAt);
+    const notifyAt = new Date(
+      scheduledTime.getTime() - settings.reminderOffset * 60 * 1000
+    );
+    
+    const delay = notifyAt.getTime() - Date.now();
+    
+    // Don't schedule if already past
+    if (delay <= 0) {
+      console.log('Follow-up time already passed');
+      return;
+    }
+    
+    // Add job to queue
+    await this.notificationQueue.add(
+      'followup-reminder',
+      {
+        followUpId: followUp._id.toString(),
+        userId,
+        clientId: followUp.client.toString(),
+      },
+      {
+        delay,
+        jobId: `followup-${followUp._id}`,  // Unique ID for cancellation
+        removeOnComplete: true,
+        removeOnFail: false,
+      }
+    );
+    
+    console.log(`Scheduled reminder for ${notifyAt.toISOString()}`);
+  }
+  async cancelFollowUpReminder(followUpId: string) {
+    const job = await this.notificationQueue.getJob(`followup-${followUpId}`);
+    if (job) {
+      await job.remove();
+    }
+  }
+}
+Phase 4: Socket.io Gateway for Real-Time
+// notifications.gateway.ts
+@WebSocketGateway({ cors: true })
+export class NotificationsGateway {
+  @WebSocketServer()
+  server: Server;
+  // Map of userId -> socketId for targeting
+  private userSockets = new Map<string, string>();
+  handleConnection(client: Socket) {
+    const userId = client.handshake.query.userId as string;
+    if (userId) {
+      this.userSockets.set(userId, client.id);
+    }
+  }
+  handleDisconnect(client: Socket) {
+    const userId = client.handshake.query.userId as string;
+    if (userId) {
+      this.userSockets.delete(userId);
+    }
+  }
+  sendNotificationToUser(userId: string, notification: any) {
+    const socketId = this.userSockets.get(userId);
+    if (socketId) {
+      this.server.to(socketId).emit('notification', notification);
+    }
+  }
+}
+Phase 5: Frontend Integration
+// Frontend: useNotifications.ts
+import { useEffect } from 'react';
+import { io } from 'socket.io-client';
+export const useNotifications = (userId: string) => {
+  useEffect(() => {
+    const socket = io('http://localhost:3000', {
+      query: { userId }
+    });
+    socket.on('notification', (data) => {
+      // Show toast notification
+      toast({
+        title: data.title,
+        description: data.message,
+        action: <Button onClick={() => navigate(`/clients/${data.clientId}`)}>
+          View Client
+        </Button>
+      });
+      // Play sound if enabled
+      if (settings.soundEnabled) {
+        playNotificationSound();
+      }
+    });
+    return () => socket.disconnect();
+  }, [userId]);
+};
+Quiet Hours Logic Diagram
+No
+Yes
+No
+Yes
+Job Triggered
+Quiet Hours Enabled?
+Send Notification
+Get User's Local Time
+Is Current Time in Quiet Hours?
+Calculate Time Until Quiet Hours End
+Reschedule Job
+Wait Until Quiet Hours End
+API Endpoints Summary
+Method	Endpoint	Description
+POST	/follow-ups/client/:clientId	Create follow-up + schedule reminder
+GET	/follow-ups/client/:clientId	Get client's follow-ups
+PATCH	/follow-ups/:id	Update follow-up (reschedules if time changes)
+PATCH	/follow-ups/:id/complete	Mark as complete (cancels reminder)
+DELETE	/follow-ups/:id	Delete follow-up (cancels reminder)
+Environment Variables
+# .env
+REDIS_HOST=localhost
+REDIS_PORT=6379
+REDIS_PASSWORD=
+# Optional: For production
+REDIS_URL=redis://username:password@host:port
+Production Considerations
+Redis Persistence: Enable RDB/AOF for job recovery after restart
+Dead Letter Queue: Handle failed jobs
+Job Retries: Configure retry strategy for network failures
+Monitoring: Use Bull Board for queue visualization
+Scaling: BullMQ supports multiple workers for horizontal scaling
+Graceful Shutdown: Properly close connections on app shutdown
+Testing Checklist
+ Create follow-up → Verify job appears in Redis
+ Wait for scheduled time → Verify notification received
+ Create follow-up during quiet hours → Verify reschedule
+ Update follow-up time → Verify job rescheduled
+ Delete follow-up → Verify job cancelled
+ Disable notifications → Verify no notification sent
+ Different timezones → Verify correct local time calculation
