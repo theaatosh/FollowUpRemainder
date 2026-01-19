@@ -10,6 +10,9 @@ import { ClientModule } from './client/client.module';
 import { SettingsModule } from './settings/settings.module';
 import { FollowUpModule } from './follow-up/follow-up.module';
 import { NotesModule } from './notes/notes.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { NotificationService } from './notification/notification.service';
+import { QueuesModule } from './queues/queues.module';
 @Module({
   imports: [ConfigModule.forRoot({
     isGlobal:true
@@ -20,8 +23,10 @@ import { NotesModule } from './notes/notes.module';
    ClientModule,
    SettingsModule,
    FollowUpModule,
-   NotesModule],
+   NotesModule,
+   NotificationsModule,
+   QueuesModule],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, NotificationService],
 })
 export class AppModule {}
