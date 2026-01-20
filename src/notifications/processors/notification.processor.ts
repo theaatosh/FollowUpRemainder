@@ -54,6 +54,7 @@ export class NotificationProcessor extends WorkerHost {
         // 5. Get client details
         const client = await this.clientModel.findById(clientId);
 
+        console.log("cleint",client)
         // 6. Send notification
         this.notificationGateway.sendNotificationToUser(userId, {
             title: `Follow-up Reminder: ${client?.fullName}`,

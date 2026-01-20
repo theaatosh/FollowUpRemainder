@@ -20,8 +20,13 @@ export class NotificationsGateway {
     }
   }
   sendNotificationToUser(userId: string, notification: any) {
+    console.log("userId",userId)
+    console.log("notification",notification)
+    console.log("eta aairaxa aba user ko ma pathauxa esle")
     const socketId = this.userSockets.get(userId);
+    console.log("socketId",socketId)
     if (socketId) {
+      console.log("socketId milxa aba pathauxa")
       this.server.to(socketId).emit('notification', notification);
     }
   }

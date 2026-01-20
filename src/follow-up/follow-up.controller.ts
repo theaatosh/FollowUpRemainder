@@ -9,7 +9,7 @@ export class FollowUpController {
 
     constructor(private readonly followUpService: FollowUpService) { }
     @UseGuards(JwtGuard)
-    @Post('/:clientId')
+    @Post('/client/:clientId')
     async createFollowUp(@Req() req: RequestWithUser, @Param('clientId') clientId: string, @Body() createFollowUpDto: CreateFollowUpDto) {
         const userId = req.user?.sub;
         if (!userId) {

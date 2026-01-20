@@ -75,5 +75,3 @@ async createFollowUp(userId, clientId, dto) {
 
 }
 
-
-// mero xai followup 6 baje ko rakhda tei belama job active bho time anusar chaleko xaina ekchoti ramro sanga time check garnu parxa followup ko 
