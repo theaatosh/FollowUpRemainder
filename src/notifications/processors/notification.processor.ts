@@ -6,12 +6,15 @@ import { Client, ClientDocument } from "src/client/schema/client.schema";
 import { FollowUp, FollowUpDocument, FollowUpStatus } from "src/follow-up/schema/followUp.schema";
 import { SettingsService } from "src/settings/settings.service";
 import { NotificationsGateway } from "../notifications.gateway";
+import { User, UserDocument } from "src/user/schema/user.schema";
+import { UserService } from "src/user/user.service";
 
 @Processor('notifications')
 export class NotificationProcessor extends WorkerHost {
 
     constructor(
         @InjectModel(FollowUp.name) private readonly followUpModel: Model<FollowUpDocument>,
+        private readonly userService: UserService,
         private readonly settingsService: SettingsService,
         @InjectModel(Client.name) private readonly clientModel: Model<ClientDocument>,
         @InjectQueue('notifications') private readonly notificationQueue: Queue,
@@ -44,9 +47,13 @@ export class NotificationProcessor extends WorkerHost {
         // 3. Check if notifications enabled
         if (!settings.notificationsEnabled) return;
 
+        const user = await this.userService.findById(userId);  // Get user with email
+
+        console.log("eta ta pugyo")
         // 4. Check quiet hours
         if (this.isQuietHours(settings)) {
             // Reschedule for after quiet hours
+            console.log("this is quiet hours")
             await this.rescheduleAfterQuietHours(job, settings);
             return;
         }
@@ -54,18 +61,17 @@ export class NotificationProcessor extends WorkerHost {
         // 5. Get client details
         const client = await this.clientModel.findById(clientId);
 
-        console.log("cleint",client)
         // 6. Send notification
         this.notificationGateway.sendNotificationToUser(userId, {
             title: `Follow-up Reminder: ${client?.fullName}`,
             message: followUp.goal,
-            data: { followUpId, clientId }
+            data: { followUpId, clientId, clientName: client?.fullName },
+            userEmail: user?.email
         });
     }
 
     private isQuietHours(settings): boolean {
-        if (!settings.quietHoursEnabled) return false;
-
+console.log("settingshoyo",settings)
         // Get current time in user's timezone
         const userLocalTime = new Date().toLocaleString('en-US', {
             timeZone: settings.timeZone,
@@ -83,6 +89,9 @@ export class NotificationProcessor extends WorkerHost {
         const startMinutes = startHour * 60 + startMin;
         const endMinutes = endHour * 60 + endMin;
 
+        console.log("currentMinutes",currentMinutes)
+        console.log("startMinutes",startMinutes)
+        console.log("endMinutes",endMinutes)
         // Handle overnight quiet hours (e.g., 22:00 - 07:00)
         if (startMinutes > endMinutes) {
             return currentMinutes >= startMinutes || currentMinutes < endMinutes;

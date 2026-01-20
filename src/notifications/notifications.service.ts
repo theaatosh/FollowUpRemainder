@@ -8,6 +8,7 @@ import { SettingsService } from "src/settings/settings.service";
 export class NotificationsService {
   constructor(
     @InjectQueue('notifications') private notificationQueue: Queue,
+    
     private settingsService: SettingsService,
   ) {}
   async scheduleFollowUpReminder(followUp, userId: string) {
