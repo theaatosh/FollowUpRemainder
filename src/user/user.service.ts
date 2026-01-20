@@ -10,7 +10,7 @@ export class UserService {
         @InjectModel(User.name) private userModel: Model<UserDocument>,
     ) { }
 
-    async createUser(userData: CreateUserData,session?:ClientSession): Promise<UserDocument> {
+    async createUser(userData: CreateUserData, session?: ClientSession): Promise<UserDocument> {
         const user = new this.userModel(userData);
         return user.save();
     }
@@ -28,7 +28,12 @@ export class UserService {
         return !!user;
     }
 
-    async updateUser(id:string,updateData:Partial<User>):Promise<UserDocument|null>{
-        return this.userModel.findByIdAndUpdate(id,updateData,{new:true});
+    async updateUser(id: string, updateData: Partial<User>): Promise<UserDocument | null> {
+        return this.userModel.findByIdAndUpdate(id, updateData, { new: true });
+    }
+
+    async getProfile(userId: string): Promise<UserDocument | null> {
+        console.log(userId)
+        return this.findById(userId);
     }
 }
