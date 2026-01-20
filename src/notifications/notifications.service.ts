@@ -52,4 +52,33 @@ export class NotificationsService {
       await job.remove();
     }
   }
+
+
+
+  //push notification usage for future 
+  // backend/src/notifications/notifications.service.ts
+// import * as admin from 'firebase-admin';
+// // Initialize with the file you downloaded in Phase 1
+// admin.initializeApp({
+//   credential: admin.credential.cert(require('../../firebase-service-account.json')),
+// });
+// async sendPushNotification(userId: string, title: string, body: string) {
+//     // 1. Get user and their token from DB
+//     const user = await this.userModel.findById(userId);
+//     if (!user || !user.fcmToken) return;
+//     // 2. Send message via Firebase
+//     await admin.messaging().send({
+//         token: user.fcmToken, // The address we saved earlier
+//         notification: {
+//             title: title,
+//             body: body,
+//         },
+//         data: {
+//             // Extra data for handling clicks
+//             screen: 'ClientDetail',
+//             clientId: '123'
+//         }
+//     });
+// }
+
 }

@@ -1,15 +1,17 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { FollowUpService } from './follow-up.service';
 import { FollowUpController } from './follow-up.controller';
 import { MongooseModule } from '@nestjs/mongoose';
 import { FollowUp, FollowUpSchema } from './schema/followUp.schema';
 import { QueuesModule } from 'src/queues/queues.module';
 import { SettingsModule } from 'src/settings/settings.module';
+import { NotificationsModule } from 'src/notifications/notifications.module';
 
 @Module({
   imports: [
-    QueuesModule,
-    SettingsModule,
+      forwardRef(() => NotificationsModule), // Add forwardRef here
+  QueuesModule,
+  SettingsModule,
     MongooseModule.forFeature([{ name: FollowUp.name, schema: FollowUpSchema }])
   ],
   providers: [FollowUpService],

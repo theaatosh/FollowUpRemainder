@@ -7,12 +7,14 @@ import { CreateFollowUpDto } from './dto/createFollowUp.dto';
 import { SettingsService } from 'src/settings/settings.service';
 import { Queue } from 'bullmq';
 import { InjectQueue } from '@nestjs/bullmq';
+import { NotificationsService } from 'src/notifications/notifications.service';
 
 @Injectable()
 export class FollowUpService {
 
   constructor(@InjectModel(FollowUp.name) private readonly followUpModel: Model<FollowUpDocument>,
     @InjectQueue('notifications') private readonly notificationQueue: Queue,
+    private readonly notificationsService: NotificationsService,
     private readonly settingsService: SettingsService) { }
 
 
@@ -25,24 +27,27 @@ export class FollowUpService {
       scheduledAt: dto.scheduledAt,  // ISO string stored as Date
       goal: dto.goal,
     });
-    // 2. Get user settings for reminder offset
-    const settings = await this.settingsService.getSettings(userId);
-    // 3. Calculate notification time (scheduledAt - reminderOffset)
-    const notifyAt = new Date(dto.scheduledAt);
-    notifyAt.setMinutes(notifyAt.getMinutes() - settings.reminderOffset);
-    console.log("notifyAt", notifyAt)
-    // 4. Schedule BullMQ job
-    await this.notificationQueue.add(
-      'followup-reminder',
-      {
-        followUpId: followUp._id,
-        userId,
-        clientId
-      },
-      {
-        delay: notifyAt.getTime() - Date.now()  // Milliseconds until notification
-      }
-    );
+
+
+    await this.notificationsService.scheduleFollowUpReminder(followUp, userId);
+    // // 2. Get user settings for reminder offset
+    // const settings = await this.settingsService.getSettings(userId);
+    // // 3. Calculate notification time (scheduledAt - reminderOffset)
+    // const notifyAt = new Date(dto.scheduledAt);
+    // notifyAt.setMinutes(notifyAt.getMinutes() - settings.reminderOffset);
+    // console.log("notifyAt", notifyAt)
+    // // 4. Schedule BullMQ job
+    // await this.notificationQueue.add(
+    //   'followup-reminder',
+    //   {
+    //     followUpId: followUp._id,
+    //     userId,
+    //     clientId
+    //   },
+    //   {
+    //     delay: notifyAt.getTime() - Date.now()  // Milliseconds until notification
+    //   }
+    // );
     return followUp;
   }
 

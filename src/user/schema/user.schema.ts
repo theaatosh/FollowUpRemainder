@@ -19,6 +19,9 @@ export class User {
 
     @Prop({ default: 'user', enum: ['user', 'admin'] })
     role: string;
+
+    @Prop()
+    fcmToken: string;
 }
 
 export const UserSchema = SchemaFactory.createForClass(User);

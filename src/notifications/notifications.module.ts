@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { NotificationsService } from './notifications.service';
 import { NotificationProcessor } from './processors/notification.processor';
 import { NotificationsGateway } from './notifications.gateway';
@@ -11,7 +11,12 @@ import { UserModule } from 'src/user/user.module';
 
 @Module({
   imports:[
-    QueuesModule,SettingsModule,ClientModule,FollowUpModule,EmailModule,UserModule
+      QueuesModule,
+  SettingsModule,
+  forwardRef(() => ClientModule),  // Add forwardRef here
+  forwardRef(() => FollowUpModule), // Add forwardRef here
+  EmailModule,
+  UserModule
   ],
   providers: [NotificationsService,NotificationProcessor,NotificationsGateway],
   exports:[NotificationsService,NotificationsGateway]
